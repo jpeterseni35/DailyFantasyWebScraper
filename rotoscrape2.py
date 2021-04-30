@@ -16,17 +16,21 @@ driver.get('https://www.rotowire.com/daily/mlb/optimizer.php?site=DraftKings')
 delay = 3  # seconds
 try:
     myElem = WebDriverWait(driver, delay).until(
-        EC.presence_of_element_located((By.ID, 'webix_ss_body')))
+        EC.presence_of_element_located((By.ID, 'webix_ss_header')))
     print("Page is ready!")
 except TimeoutException:
     print("Loading took too much time!")
 
-rotodk_data = driver.find_elements_by_class_name("webix_ss_body")
+rotodk_data = driver.find_elements_by_class_name("webix_ss_header")
+rotodk_header = []
+for item in rotodk_data:
 
-for line in rotodk_data:
-    print(line.text.strip())
+    rotodk_header.append(item.text.strip())
+
 
 driver.close()
+
+print(rotodk_header)
 
 # rotodk_soup = BeautifulSoup(rotodk_html, 'html.parser')
 
