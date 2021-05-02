@@ -12,15 +12,19 @@ import sqlite3
 import tkinter
 from sqlite3 import Error
 from tkinter import ttk
+from tkinter import messagebox
 import datetime
+import time
 
 
 def main():
     """Main Program"""
 
+    # initiate selinum driver
     driver = webdriver.Chrome()
     delay = 5  # seconds
     driver.get('https://www.rotowire.com/daily/mlb/optimizer.php?site=DraftKings')
+    time.sleep(delay)  # wait for javascript to load
 
     def create_connection(db):
         """ Connect to a SQLite database
@@ -96,6 +100,7 @@ def main():
                                                 middleline,overunder,projected_team_runs,projected_roster_percent,weather,date_time)
                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
 
+        # Scrape data to put into lists
         player = get_cells_by_column(2)
         position = get_cells_by_column(3)
         team = get_cells_by_column(4)
@@ -111,94 +116,69 @@ def main():
         weather = get_cells_by_column(14)
         date_time = datetime.datetime.now()
 
-        dkplayer = (player, position, team, opponent, starter, salary, projected_fpts, value,
-                    middleline, overunder, projected_team_runs, projected_roster_percent, weather, date_time)
+        # Establish list of lists
+        index = 0
+        dkplayer = [player[index], position[index], team[index], opponent[index], starter[index], salary[index], projected_fpts[index], value[index],
+                    middleline[index], overunder[index], projected_team_runs[index], projected_roster_percent[index], weather[index], date_time]
+        loading_message = "Inserting"
+        # loop through lists of lists and insert row into database for each index value
         try:
-            cur = conn.cursor()  # cursor object
-            cur.execute(sql, dkplayer)
-            conn.commit()
+            # use salary due to reliabile length and clean data. -1 to prevent index out of range
+            for index in range((len(salary)-1)):
+                dkplayer = [player[index], position[index], team[index], opponent[index], starter[index], salary[index], projected_fpts[index], value[index],
+                            middleline[index], overunder[index], projected_team_runs[index], projected_roster_percent[index], weather[index], date_time]
+                cur = conn.cursor()  # cursor object
+                cur.execute(sql, dkplayer)
+                conn.commit()
+                print(f"{loading_message} {dkplayer} into database...")
+                index = index + 1
             conn.close()
+            messagebox.showinfo(
+                'Results', 'Daily Projections added to database.')
         except Error as e:
             print(e)
-
-    def get_headers():
-        """Gets the Draft Kings Daily Projections headers and puts them in a list"""
-        try:
-            element = WebDriverWait(driver, delay).until(
-                EC.presence_of_element_located(
-                    (By.ID, "webix_ss_header"))
-            )
-        # Time out garunteed so exception used to get elements
-        except:
-            rotodk_header = []
-            for item in driver.find_elements_by_xpath('//div[@role="columnheader"]'):
-                rotodk_header.append(item.text)
-        return rotodk_header
 
     def get_cells_by_column(column_index):
         """Gets the cell data from Draft Kings Daily Projections and puts them in a list"""
         try:
-            element = WebDriverWait(driver, delay).until(
-                EC.presence_of_element_located(
-                    (By.ID, "webix_ss_body"))
-            )
-        except:
             rotodk_body = []
+            loading_message = "Scraping"
             for item in driver.find_elements_by_xpath(f'//div[@aria-colindex="{column_index}"]'):
                 rotodk_body.append(item.text)
+                # print loading message
+                print(f"{loading_message} {item.text}...")
+        except Error as e:
+            print(e)
         return rotodk_body
-
-    # def get_column_index(rotodk_header):
 
     def get_input(column_index):
         """Gets the cell input type data from Draft Kings Daily Projections and puts them in a list"""
         try:
-            element = WebDriverWait(driver, delay).until(
-                EC.presence_of_element_located(
-                    (By.ID, "webix_ss_body")))
-        except:
             rotodk_body = []
+            loading_message = "Scraping"
             for item in driver.find_elements_by_xpath(f'//div[@aria-colindex="{column_index}"]/input[1]'):
                 rotodk_body.append(item.get_attribute("value"))
+                # print loading message
+                print(f"{loading_message} {item.get_attribute('value')}...")
+        except Error as e:
+            print(e)
         return rotodk_body
 
-    # construct columns
-
+    # call functions
     create_tables("dailyfantasyscraper.db")
     conn = create_connection("dailyfantasyscraper.db")
-    create_player_projections()
+    # create_player_projections()
 
-    # player = get_cells_by_column(2)
-    # position = get_cells_by_column(3)
-    # team = get_cells_by_column(4)
-    # opponent = get_cells_by_column(5)
-    # starter = get_cells_by_column(6)
-    # salary = get_input(7)
-    # projected_fpts = get_input(8)
-    # value = get_cells_by_column(9)
-    # middleline = get_cells_by_column(10)
-    # overunder = get_cells_by_column(11)
-    # projected_team_runs = get_cells_by_column(12)
-    # projected_roster_percent = get_cells_by_column(13)
-    # weather = get_cells_by_column(14)
-    # date_time = datetime.datetime.now()
-
-    # print(f"{get_headers()}")
-    # print(f"{players_col}")
-    # print(f"{pos_col}")
-    # print(f"{team_col}")
-    # print(f"{opp_col}")
-    # print(f"{start_col}")
-    # print(f"{sal_col}")
-    # print(f"{fpts_col}")
-    # print(f"{val_col}")
-    # print(f"{ml_col}")
-    # print(f"{ou_col}")
-    # print(f"{teamruns_col}")
-    # print(f"{roster_percent_col}")
-    # print(f"{weather_col}")
+    #### Work in progress #######
+    #### Want to spit results to GUI and have launcher to kick off selenium driver #####
+    main_window = tkinter.Tk()
+    title = main_window.title("Roto Scraper Launcher")
+    main_window.geometry("300x150")
+    btn_add_players = tkinter.Button(
+        main_window, text="Add Player Projections to Database", command=create_player_projections)
+    btn_add_players.pack()
+    main_window.mainloop()
     driver.quit()
 
 
-if __name__ == '__main__':
-    main()
+main()
