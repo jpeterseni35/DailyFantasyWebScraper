@@ -13,6 +13,7 @@ import tkinter
 from sqlite3 import Error
 from tkinter import ttk
 from tkinter import messagebox
+from PIL import ImageTk, Image
 import datetime
 import time
 
@@ -20,11 +21,26 @@ import time
 def main():
     """Main Program"""
 
-    # initiate selinum driver
-    driver = webdriver.Chrome()
-    delay = 5  # seconds
-    driver.get('https://www.rotowire.com/daily/mlb/optimizer.php?site=DraftKings')
-    time.sleep(delay)  # wait for javascript to load
+    def initiate_driver():
+        """initiate selenium driver"""
+        global driver
+
+        driver = None
+
+        if not driver:
+            driver = webdriver.Chrome()
+            delay = 5  # seconds
+            driver.get(
+                'https://www.rotowire.com/daily/mlb/optimizer.php?site=DraftKings')
+            time.sleep(delay)  # wait for javascript to load
+
+    def close_driver():
+        """Close selenium driver"""
+        global driver
+
+        if driver:
+            driver.close()
+            driver = None
 
     def create_connection(db):
         """ Connect to a SQLite database
@@ -94,35 +110,35 @@ def main():
         :param player:
         :return: player id
         """
+
         conn = create_connection("dailyfantasyscraper.db")
 
         sql = ''' INSERT INTO rotowiredk(player,position,team,opponent,starter,salary,projected_fpts,value,
                                                 middleline,overunder,projected_team_runs,projected_roster_percent,weather,date_time)
                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
-
-        # Scrape data to put into lists
-        player = get_cells_by_column(2)
-        position = get_cells_by_column(3)
-        team = get_cells_by_column(4)
-        opponent = get_cells_by_column(5)
-        starter = get_cells_by_column(6)
-        salary = get_input(7)
-        projected_fpts = get_input(8)
-        value = get_cells_by_column(9)
-        middleline = get_cells_by_column(10)
-        overunder = get_cells_by_column(11)
-        projected_team_runs = get_cells_by_column(12)
-        projected_roster_percent = get_cells_by_column(13)
-        weather = get_cells_by_column(14)
-        date_time = datetime.datetime.now()
-
-        # Establish list of lists
-        index = 0
-        dkplayer = [player[index], position[index], team[index], opponent[index], starter[index], salary[index], projected_fpts[index], value[index],
-                    middleline[index], overunder[index], projected_team_runs[index], projected_roster_percent[index], weather[index], date_time]
-        loading_message = "Inserting"
-        # loop through lists of lists and insert row into database for each index value
         try:
+            # Scrape data to put into lists
+            player = get_cells_by_column(2)
+            position = get_cells_by_column(3)
+            team = get_cells_by_column(4)
+            opponent = get_cells_by_column(5)
+            starter = get_cells_by_column(6)
+            salary = get_input(7)
+            projected_fpts = get_input(8)
+            value = get_cells_by_column(9)
+            middleline = get_cells_by_column(10)
+            overunder = get_cells_by_column(11)
+            projected_team_runs = get_cells_by_column(12)
+            projected_roster_percent = get_cells_by_column(13)
+            weather = get_cells_by_column(14)
+            date_time = datetime.datetime.now()
+
+            # Establish list of lists
+            index = 0
+            dkplayer = [player[index], position[index], team[index], opponent[index], starter[index], salary[index], projected_fpts[index], value[index],
+                        middleline[index], overunder[index], projected_team_runs[index], projected_roster_percent[index], weather[index], date_time]
+            # loop through lists of lists and insert row into database for each index value
+
             # use salary due to reliabile length and clean data. -1 to prevent index out of range
             for index in range((len(salary)-1)):
                 dkplayer = [player[index], position[index], team[index], opponent[index], starter[index], salary[index], projected_fpts[index], value[index],
@@ -130,55 +146,99 @@ def main():
                 cur = conn.cursor()  # cursor object
                 cur.execute(sql, dkplayer)
                 conn.commit()
-                print(f"{loading_message} {dkplayer} into database...")
+                write(print(f"Inserting {dkplayer} into database..."))
                 index = index + 1
             conn.close()
             messagebox.showinfo(
                 'Results', 'Daily Projections added to database.')
-        except Error as e:
-            print(e)
+
+        except:
+            write("No players found!")
 
     def get_cells_by_column(column_index):
         """Gets the cell data from Draft Kings Daily Projections and puts them in a list"""
         try:
             rotodk_body = []
-            loading_message = "Scraping"
             for item in driver.find_elements_by_xpath(f'//div[@aria-colindex="{column_index}"]'):
                 rotodk_body.append(item.text)
                 # print loading message
-                print(f"{loading_message} {item.text}...")
-        except Error as e:
-            print(e)
+                write(print(f"Scraping {item.text}..."))
+        except:
+            write("No players found!")
         return rotodk_body
 
     def get_input(column_index):
         """Gets the cell input type data from Draft Kings Daily Projections and puts them in a list"""
         try:
             rotodk_body = []
-            loading_message = "Scraping"
             for item in driver.find_elements_by_xpath(f'//div[@aria-colindex="{column_index}"]/input[1]'):
                 rotodk_body.append(item.get_attribute("value"))
                 # print loading message
-                print(f"{loading_message} {item.get_attribute('value')}...")
-        except Error as e:
-            print(e)
+                write(print(f"Scraping {item.get_attribute('value')}..."))
+        except:
+            write("No players found!")
         return rotodk_body
+
+    def write(loading_message):
+        text_box.config(state=tkinter.NORMAL)
+        text_box.insert("end", loading_message + "\n")
+        text_box.see("end")
+        text_box.config(state=tkinter.DISABLED)
+
+    ########## Work In Progress ###############
+    # def view_rotowiredk():
+    #     """Query all rows of rotowiredk table and insert into tk treeview"""
+
+    #     conn = create_connection("dailyfantasyscraper.db")
+
+    #     cur = conn.cursor()
+    #     cur.execute("SELECT * FROM rotowiredk")
+    #     result = cur.fetchall()
+    #     conn.commit()
+    #     conn.close()
+    #     for item in result:
+    #         print(item)
+    #         tree.insert('', 'end', values=item)
 
     # call functions
     create_tables("dailyfantasyscraper.db")
     conn = create_connection("dailyfantasyscraper.db")
-    # create_player_projections()
 
-    #### Work in progress #######
-    #### Want to spit results to GUI and have launcher to kick off selenium driver #####
+    # GUI Code
     main_window = tkinter.Tk()
-    title = main_window.title("Roto Scraper Launcher")
-    main_window.geometry("300x150")
+    main_window.title("Roto Scraper Launcher")
+    main_window.attributes('-alpha', 0.95)
+    main_window.geometry("762x900")
+    bg = ImageTk.PhotoImage(Image.open(
+        "RotoScraperBackground.jpg"), master=main_window)
+    canvas = tkinter.Canvas(master=main_window)
+    canvas.pack(fill="both", expand=True)
+    canvas.create_image(50, 50, image=bg, anchor="nw")
+    frame1 = tkinter.Frame(master=main_window, width=10, height=10)
+    frame2 = tkinter.Frame(master=main_window, width=50, height=50)
+    ############# Work in Progress on Tree output ############################
+    # tree = ttk.Treeview(master=frame2, columns=(
+    #     "Player", "Position", "Team", "Opponent", "Starter", "Salary", "Projected Fpts", "Value",
+    #     "Middleline", "Over/Under", "Projected Team Runs", "Projected Roster Percent", "Weather,Date Time"))
+    frame1.pack()
+    btn_initiate_driver = tkinter.Button(
+        master=frame1, text="Launch Web Scraper", activebackground='chartreuse2', command=initiate_driver)
+    btn_initiate_driver.pack(side=tkinter.LEFT, padx=5, pady=5)
+    btn_close_driver = tkinter.Button(
+        master=frame1, text="Close Web Scraper", activebackground='firebrick2', command=close_driver)
+    btn_close_driver.pack(side=tkinter.RIGHT, padx=5, pady=5)
+    frame2.pack()
     btn_add_players = tkinter.Button(
-        main_window, text="Add Player Projections to Database", command=create_player_projections)
-    btn_add_players.pack()
+        master=frame2, text="Add Player Projections to Database", activebackground='chartreuse2', command=create_player_projections)
+    btn_add_players.pack(padx=5, pady=5)
+    # btn_view_players = tkinter.Button(
+    #     master=frame2, text="View All Projections", activebackground='chartreuse2', command=view_rotowiredk)
+    # btn_view_players.pack(padx=5, pady=5)
+    text_box = tkinter.Text(master=frame2)
+    text_box.pack()
+    # tree.pack()
+
     main_window.mainloop()
-    driver.quit()
 
 
 main()
