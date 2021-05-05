@@ -146,14 +146,15 @@ def main():
                 cur = conn.cursor()  # cursor object
                 cur.execute(sql, dkplayer)
                 conn.commit()
-                write(print(f"Inserting {dkplayer} into database..."))
+                write(f"Inserting {dkplayer[0]} into database...")
+                main_window.update()
                 index = index + 1
             conn.close()
+
             messagebox.showinfo(
                 'Results', 'Daily Projections added to database.')
-
-        except:
-            write("No players found!")
+        except Error:
+            write(f"No players found!")
 
     def get_cells_by_column(column_index):
         """Gets the cell data from Draft Kings Daily Projections and puts them in a list"""
@@ -162,9 +163,11 @@ def main():
             for item in driver.find_elements_by_xpath(f'//div[@aria-colindex="{column_index}"]'):
                 rotodk_body.append(item.text)
                 # print loading message
-                write(print(f"Scraping {item.text}..."))
+                write(f"Scraping {item.text}...")
+                main_window.update()
         except:
-            write("No players found!")
+            write(f"No players found!")
+            main_window.update()
         return rotodk_body
 
     def get_input(column_index):
@@ -174,16 +177,17 @@ def main():
             for item in driver.find_elements_by_xpath(f'//div[@aria-colindex="{column_index}"]/input[1]'):
                 rotodk_body.append(item.get_attribute("value"))
                 # print loading message
-                write(print(f"Scraping {item.get_attribute('value')}..."))
-        except:
-            write("No players found!")
+                write(f"Scraping {item.get_attribute('value')}...")
+                main_window.update()
+        except Error:
+            write(f"No players found!")
+            main_window.update()
         return rotodk_body
 
     def write(loading_message):
-        text_box.config(state=tkinter.NORMAL)
-        text_box.insert("end", loading_message + "\n")
-        text_box.see("end")
-        text_box.config(state=tkinter.DISABLED)
+        label.config(state=tkinter.NORMAL)
+        label.config(text=loading_message)
+        label.config(state=tkinter.DISABLED)
 
     ########## Work In Progress ###############
     # def view_rotowiredk():
@@ -208,7 +212,7 @@ def main():
     main_window = tkinter.Tk()
     main_window.title("Roto Scraper Launcher")
     main_window.attributes('-alpha', 0.95)
-    main_window.geometry("762x900")
+    main_window.geometry("729x550")
     bg = ImageTk.PhotoImage(Image.open(
         "RotoScraperBackground.jpg"), master=main_window)
     canvas = tkinter.Canvas(master=main_window)
@@ -216,10 +220,16 @@ def main():
     canvas.create_image(50, 50, image=bg, anchor="nw")
     frame1 = tkinter.Frame(master=main_window, width=10, height=10)
     frame2 = tkinter.Frame(master=main_window, width=50, height=50)
-    ############# Work in Progress on Tree output ############################
     # tree = ttk.Treeview(master=frame2, columns=(
     #     "Player", "Position", "Team", "Opponent", "Starter", "Salary", "Projected Fpts", "Value",
     #     "Middleline", "Over/Under", "Projected Team Runs", "Projected Roster Percent", "Weather,Date Time"))
+    # tree.heading('#0', text='Player')
+    # tree.heading('#1', text='Player')
+    # tree.heading('#2', text='Position')
+    # tree.heading('#3', text='Team')
+    # tree.column('#0', stretch=tkinter.YES)
+    # tree.column('#1', stretch=tkinter.YES)
+    # tree.column('#2', stretch=tkinter.YES)
     frame1.pack()
     btn_initiate_driver = tkinter.Button(
         master=frame1, text="Launch Web Scraper", activebackground='chartreuse2', command=initiate_driver)
@@ -234,8 +244,8 @@ def main():
     # btn_view_players = tkinter.Button(
     #     master=frame2, text="View All Projections", activebackground='chartreuse2', command=view_rotowiredk)
     # btn_view_players.pack(padx=5, pady=5)
-    text_box = tkinter.Text(master=frame2)
-    text_box.pack()
+    label = tkinter.Label(master=frame2, height=1)
+    label.pack()
     # tree.pack()
 
     main_window.mainloop()
