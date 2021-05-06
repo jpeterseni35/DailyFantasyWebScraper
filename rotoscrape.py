@@ -19,6 +19,8 @@ import time
 
 class RotoScrape:
 
+    """RotoScrape main class"""
+
     def initiate_driver(self):
         """initiate selenium driver"""
         global driver

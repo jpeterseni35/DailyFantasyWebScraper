@@ -1,5 +1,5 @@
 # This module alows the user to view the data scraped in the Roto Scraper Launcher application
-from rotoscrape import create_connection
+from rotoscrape import *
 import sqlite3
 import tkinter
 from sqlite3 import Error
@@ -8,10 +8,11 @@ from PIL import ImageTk, Image
 
 
 class RotoView:
+    """Rotoview main class"""
 
     def view_rotowiredk(self):
         """Query all rows of rotowiredk table and insert into tk treeview"""
-        conn = create_connection("dailyfantasyscraper.db")
+        conn = rs.create_connection("dailyfantasyscraper.db")
         cur = conn.cursor()
 
         cur.execute("SELECT * FROM rotowiredk")
@@ -25,7 +26,7 @@ class RotoView:
 
     def view_all_pitchers(self):
         """Query all rows of rotowiredk table and insert into tk treeview"""
-        conn = create_connection("dailyfantasyscraper.db")
+        conn = rs.create_connection("dailyfantasyscraper.db")
         cur = conn.cursor()
         position = "P"
         cur.execute("SELECT * FROM rotowiredk where position = ?", position)
@@ -39,7 +40,7 @@ class RotoView:
 
     def view_all_batters(self):
         """Query all rows of rotowiredk table and insert into tk treeview"""
-        conn = create_connection("dailyfantasyscraper.db")
+        conn = rs.create_connection("dailyfantasyscraper.db")
         cur = conn.cursor()
         position = "P"
         cur.execute("SELECT * FROM rotowiredk where position != ?", position)
@@ -53,7 +54,7 @@ class RotoView:
 
     def view_batter_bysalary(self):
         """Query all rows with a salary less than what is entered"""
-        conn = create_connection("dailyfantasyscraper.db")
+        conn = rs.create_connection("dailyfantasyscraper.db")
         salary = "$" + sal.get()
         position = "P"
         batter_salary = (salary, position)
@@ -70,12 +71,11 @@ class RotoView:
 
     def view_record_byvalue(self):
         """Query all rows with a value greather than what is entered"""
-        conn = create_connection("dailyfantasyscraper.db")
+        conn = rs.create_connection("dailyfantasyscraper.db")
         value = val.get()
-        player_value = (value)
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM rotowiredk WHERE value > ?", player_value)
+            "SELECT * FROM rotowiredk WHERE value > ?", (value,))
         result = cur.fetchall()
         conn.commit()
         conn.close()
@@ -93,12 +93,14 @@ class RotoView:
 
 if __name__ == "__main__":
     rv = RotoView()
+    rs = RotoScrape()
+
     # create database connection from rotoscrape
-    conn = create_connection("dailyfantasyscraper.db")
+    conn = rs.create_connection("dailyfantasyscraper.db")
     # GUI code
     main_window = tkinter.Tk()
     main_window.title("Roto Scraper Viewer")
-    main_window.geometry("825x1050")
+    main_window.geometry("825x1075")
     bg = ImageTk.PhotoImage(Image.open(
         "RotoViewerBackground.jpg"), master=main_window)
     canvas = tkinter.Canvas(master=main_window)
@@ -109,10 +111,14 @@ if __name__ == "__main__":
     frame1.pack()
     tree = ttk.Treeview(master=frame1, show="headings", columns=("Column 1", "Column 2", "Column 3", "Column 4", "Column 5", "Column 6", "Column 7", "Column 8",
                                                                  "Column 9", "Column 10", "Column 11", "Column 12", "Column 13", "Column 14", "Column 15"))
-    sb = tkinter.Scrollbar(frame1, orient="horizontal")
-    sb.pack(side="bottom", fill="both")
-    tree.config(xscrollcommand=sb.set)
-    sb.config(command=tree.xview)
+    sb1 = tkinter.Scrollbar(frame1, orient="horizontal")
+    sb1.pack(side="bottom", fill="both")
+    sb2 = tkinter.Scrollbar(frame1, orient="vertical")
+    sb2.pack(side="right", fill="both")
+    tree.config(xscrollcommand=sb1.set)
+    tree.config(yscrollcommand=sb2.set)
+    sb1.config(command=tree.xview)
+    sb2.config(command=tree.yview)
     tree.heading('Column 1', text='ID', anchor="center")
     tree.heading('Column 2', text='Player', anchor="center")
     tree.heading('Column 3', text='Position', anchor="center")
@@ -168,7 +174,7 @@ if __name__ == "__main__":
         master=main_window, text="View Players Above Entered Value", activebackground='chartreuse2', command=rv.view_record_byvalue)
     btn_view_byvalue.pack(padx=5, pady=5)
     btn_reset = tkinter.Button(
-        master=main_window, text="Reset View", activebackground='chartreuse2', command=rv.reset_view)
+        master=main_window, text="Reset View", activebackground='firebrick2', command=rv.reset_view)
     btn_reset.pack(padx=5, pady=15)
 
     main_window.mainloop()
